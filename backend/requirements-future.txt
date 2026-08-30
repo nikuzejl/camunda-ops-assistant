@@ -1,0 +1,7 @@
+# Additional dependencies for later phases (RAG, agent, database).
+# Not required for Phase 1. Install when implementing Phase 2+.
+langchain>=0.3.14
+langgraph>=0.2.62
+pgvector==0.3.6
+psycopg[binary]==3.2.3
+SQLAlchemy==2.0.36
