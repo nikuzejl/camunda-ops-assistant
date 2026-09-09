@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 class ProcessInstanceState(str, Enum):
     ACTIVE = "ACTIVE"
+    FAILED = "FAILED"
     COMPLETED = "COMPLETED"
     TERMINATED = "TERMINATED"
     INCIDENT = "INCIDENT"
@@ -51,8 +52,7 @@ class ProcessDefinition(BaseModel):
     process_definition_id: str
     name: str
     version: int
-    bpmn_xml: Optional[str] = None
-    deployment_time: datetime
+    deployment_time: Optional[datetime] = None
 
 
 class ChatRequest(BaseModel):
@@ -63,6 +63,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
+
+
+class AiSummaryResponse(BaseModel):
+    summary: str
 
 
 class HealthResponse(BaseModel):

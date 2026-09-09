@@ -1,23 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "dom"],
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "useDefineForClassFields": false,
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [{ "name": "next" }],
+    "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@angular/common": ["node_modules/@angular/common/index.d.ts"],
+      "@angular/common/http": ["node_modules/@angular/common/http/index.d.ts"],
+      "@angular/core": ["node_modules/@angular/core/index.d.ts"],
+      "@angular/forms": ["node_modules/@angular/forms/index.d.ts"],
+      "@angular/router": ["node_modules/@angular/router/index.d.ts"],
+      "@angular/platform-browser": ["node_modules/@angular/platform-browser/index.d.ts"],
+      "rxjs": ["node_modules/rxjs/index.d.ts"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "strictInjectionParameters": true
+  }
 }

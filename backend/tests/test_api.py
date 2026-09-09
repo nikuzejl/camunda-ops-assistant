@@ -1,11 +1,59 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api import routes
 from app.main import app
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    class CamundaClientStub:
+        process_instance = {
+            "key": "6755399441055745",
+            "processDefinitionId": "payment-processing",
+            "processDefinitionKey": "2251799813685250",
+            "processDefinitionVersion": 5,
+            "state": "ACTIVE",
+            "startDate": "2026-08-31T10:00:00Z",
+            "incident": False,
+        }
+        incident = {
+            "key": "9007199254740992",
+            "processInstanceKey": "6755399441055745",
+            "processDefinitionId": "payment-processing",
+            "errorType": "JOB_NO_RETRIES",
+            "errorMessage": "Payment gateway timeout",
+            "flowNodeId": "Task_ChargeCard",
+            "state": "ACTIVE",
+            "creationTime": "2026-08-31T10:05:00Z",
+        }
+        process_definition = {
+            "key": "2251799813685250",
+            "processDefinitionId": "payment-processing",
+            "name": "Payment Processing",
+            "version": 5,
+            "deploymentTime": "2026-08-01T10:00:00Z",
+        }
+
+        def list_process_instances(self) -> list[dict[str, object]]:
+            return [self.process_instance]
+
+        def get_process_instance(self, key: str) -> dict[str, object] | None:
+            return self.process_instance if key == self.process_instance["key"] else None
+
+        def list_incidents(self) -> list[dict[str, object]]:
+            return [self.incident]
+
+        def get_incident(self, key: str) -> dict[str, object] | None:
+            return self.incident if key == self.incident["key"] else None
+
+        def list_process_definitions(self) -> list[dict[str, object]]:
+            return [self.process_definition]
+
+        def get_process_definition(self, key: str) -> dict[str, object] | None:
+            return self.process_definition if key == self.process_definition["key"] else None
+
+    monkeypatch.setattr(routes, "get_camunda_client", CamundaClientStub)
     return TestClient(app)
 
 
@@ -14,7 +62,7 @@ def test_health(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["camunda_mode"] == "mock"
+    assert body["camunda_mode"] == "real"
 
 
 def test_list_process_instances(client: TestClient) -> None:

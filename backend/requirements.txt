@@ -4,6 +4,8 @@ pydantic==2.10.4
 pydantic-settings==2.7.1
 httpx==0.28.1
 python-multipart==0.0.20
+google-genai
+pillow
 
 # Testing
 pytest==8.3.4

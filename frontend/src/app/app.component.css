@@ -1,0 +1,10 @@
+.app-shell { min-height: 100vh; display: flex; background: radial-gradient(circle at 80% 0%, #17243a 0, #090d16 38%); }
+.sidebar { width: 255px; flex: 0 0 255px; border-right: 1px solid #1e2b3f; padding: 28px 18px; background: rgba(13, 19, 31, .82); }
+.brand { padding: 0 12px 30px; border-bottom: 1px solid #1e2b3f; margin-bottom: 22px; }
+.brand h1 { margin: 0 0 5px; font-size: 18px; letter-spacing: -.3px; }
+.brand p { margin: 0; color: #8391a7; font-size: 12px; }
+nav { display: grid; gap: 5px; }
+nav a { padding: 11px 12px; border-radius: 5px; color: #91a0b6; font-size: 13px; transition: background .2s, color .2s; }
+nav a:hover, nav a.active { color: #f4f8ff; background: #17263c; }
+.content { flex: 1; min-width: 0; }
+@media (max-width: 720px) { .app-shell { display: block; } .sidebar { width: auto; border-right: 0; border-bottom: 1px solid #1e2b3f; padding: 18px; } .brand { padding-bottom: 16px; margin-bottom: 14px; } nav { display: flex; overflow-x: auto; } nav a { white-space: nowrap; } }

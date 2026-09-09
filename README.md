@@ -11,9 +11,8 @@ investigation workflow (see the phased roadmap below).
 
 ## Status
 
-**Phase 1 (this repo, current state):** basic dashboard + read-only API backed by mock
-data, so the full stack can be run and tested end to end before Camunda/RAG/agent
-integrations are added.
+**Current state:** the read-only API fetches operational data from your configured
+Camunda cluster. RAG and investigation-agent integrations remain future work.
 
 ## Architecture
 
@@ -27,7 +26,7 @@ backend/
     camunda/             CamundaClient abstraction, mock/real modes (Phase 2+)
     database/            SQLAlchemy models / pgvector (Phase 3+)
     models/              Pydantic schemas shared across the API
-    services/            Business logic (chat, mock data, etc.)
+    services/            Business logic (chat, etc.)
     config/              Environment-driven settings (pydantic-settings)
   tests/                 Pytest suite
 docker-compose.yml        Postgres (pgvector) + backend + frontend for local dev
@@ -58,8 +57,13 @@ Design principles carried through every phase:
 
 ### 1. Configure environment variables
 
-Fill in `LLM_API_KEY` / `EMBEDDING_API_KEY` etc. only when you reach the phases that
-need them. Phase 1 runs entirely on mock data and does not require any API keys.
+Create a root `.env` file with the Camunda endpoints for your local cluster:
+
+```env
+CAMUNDA_ZEEBE_REST_ADDRESS=http://localhost:8080
+CAMUNDA_OPERATE_BASE_URL=http://localhost:8080/v2
+CAMUNDA_TASKLIST_BASE_URL=http://localhost:8080/tasklist
+```
 
 ### 2. Run the backend
 
@@ -81,8 +85,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at http://localhost:3000 and calls the backend via `NEXT_PUBLIC_API_URL`
-(defaults to `http://localhost:8000`).
+Frontend runs at `http://localhost:3000` and calls the backend via `http://localhost:8000`.
 
 ### 4. Run everything with Docker Compose
 
@@ -99,11 +102,11 @@ cd backend
 pytest -q
 ```
 
-## API (Phase 1)
+## API
 
-All endpoints are prefixed with `/api` and return JSON. Data currently comes from an
-in-memory mock service (`CAMUNDA_MODE=mock`); Phase 2 introduces a real Camunda-backed
-mode (`CAMUNDA_MODE=real`) behind the same `CamundaClient` interface.
+All endpoints are prefixed with `/api` and return JSON. Operational data is fetched
+from the cluster configured in `.env`; connection or upstream failures are returned as
+HTTP 502 instead of substituting local data.
 
 | Method | Path | Description |
 | --- | --- | --- |
