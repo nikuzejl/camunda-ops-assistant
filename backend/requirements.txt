@@ -6,10 +6,12 @@ httpx==0.28.1
 python-multipart==0.0.20
 google-genai
 pillow
-
-# Testing
+langchain>=0.3.14
+langchain-google-genai
+langgraph>=0.2.62
+pgvector==0.3.6
+psycopg[binary]==3.2.3
+SQLAlchemy==2.0.36
+langchain-postgres
 pytest==8.3.4
 pytest-asyncio==0.25.2
-
-# Phase 3+ (RAG / vector store / agent) dependencies live in requirements-future.txt
-# to keep Phase 1 installs fast. Install that file when starting Phase 2+.
