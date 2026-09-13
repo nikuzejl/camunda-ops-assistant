@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.camunda.client import CamundaClient
 from app.config.settings import get_settings
@@ -6,12 +6,17 @@ from app.models.schemas import (
     AiSummaryResponse,
     ChatRequest,
     ChatResponse,
+    DocumentSummary,
+    DocumentSearchRequest,
+    DocumentSearchResult,
     HealthResponse,
+    IngestionResponse,
     Incident,
     ProcessDefinition,
     ProcessInstance,
 )
 from app.services import chat_service
+from app.services import document_service
 
 router = APIRouter(prefix="/api")
 
@@ -80,5 +85,34 @@ def get_ai_summary() -> AiSummaryResponse:
 
 
 @router.post("/chat", response_model=ChatResponse)
-def post_chat(request: ChatRequest) -> ChatResponse:
-    return chat_service.handle_chat(request)
+async def post_chat(request: ChatRequest) -> ChatResponse:
+    try:
+        return await chat_service.handle_chat(get_settings(), get_camunda_client(), request)
+    except RuntimeError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.get("/documents", response_model=list[DocumentSummary])
+async def get_documents() -> list[DocumentSummary]:
+    try:
+        return await document_service.list_documents(get_settings())
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Could not load indexed documents: {error}") from error
+
+
+@router.post("/documents/ingest", response_model=IngestionResponse)
+async def ingest_document(file: UploadFile = File(...)) -> IngestionResponse:
+    try:
+        return await document_service.ingest_document(get_settings(), file)
+    except document_service.DocumentIngestionError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Document ingestion failed: {error}") from error
+
+
+@router.post("/documents/search", response_model=list[DocumentSearchResult])
+async def search_documents(request: DocumentSearchRequest) -> list[DocumentSearchResult]:
+    try:
+        return await document_service.search_documents(get_settings(), request.query, request.limit)
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Document search failed: {error}") from error

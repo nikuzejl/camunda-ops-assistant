@@ -6,25 +6,18 @@ operational data, BPMN process definitions, RAG over operational documentation,
 historical incident data, and an AI agent that decides which tools it needs — with
 human approval required before any mutating Camunda operation.
 
-This is **not** a "chat with PDF" app. RAG is one component of a larger operational
-investigation workflow (see the phased roadmap below).
-
-## Status
-
-**Current state:** the read-only API fetches operational data from your configured
-Camunda cluster. RAG and investigation-agent integrations remain future work.
 
 ## Architecture
 
 ```
-frontend/                Next.js + TypeScript + Tailwind dashboard
+frontend/                Angular
 backend/
   app/
     api/                 FastAPI routes
-    agents/              LangGraph investigation agent (Phase 5+)
-    rag/                 Document ingestion + retrieval (Phase 3+)
-    camunda/             CamundaClient abstraction, mock/real modes (Phase 2+)
-    database/            SQLAlchemy models / pgvector (Phase 3+)
+    agents/              LangGraph investigation agent
+    rag/                 Document ingestion + retrieval
+    camunda/             CamundaClient abstraction and Camunda REST access
+    database/            SQLAlchemy models / pgvector
     models/              Pydantic schemas shared across the API
     services/            Business logic (chat, etc.)
     config/              Environment-driven settings (pydantic-settings)
@@ -32,17 +25,17 @@ backend/
 docker-compose.yml        Postgres (pgvector) + backend + frontend for local dev
 ```
 
-Design principles carried through every phase:
+Design principles:
 - The frontend never holds Camunda or LLM credentials — only the backend does.
 - Camunda access goes through a `CamundaClient` abstraction so the rest of the app
-  never depends on HTTP implementation details (Phase 2).
+  never depends on HTTP implementation details.
 - The LLM/embedding provider is selected via environment variables so it can be
   swapped without touching application logic.
 - Agent logic, RAG retrieval, and Camunda integration are kept as separate layers.
 
 ## Tech stack
 
-- **Frontend:** Next.js, TypeScript, Tailwind CSS
+- **Frontend:** Angular
 - **Backend:** Python, FastAPI, Pydantic, LangChain, LangGraph
 - **Database:** PostgreSQL + pgvector
 - **Workflow platform:** Camunda 8 (local dev environment)
@@ -55,29 +48,57 @@ Design principles carried through every phase:
 - Python 3.12+
 - Docker (optional, for the full Compose stack)
 
-### 1. Configure environment variables
+### 1. Start a local Camunda 8 cluster (C8Run)
+
+This project talks to a real Camunda 8 cluster, so start one before running the
+backend. The easiest option for local development is
+[Camunda 8 Run](https://docs.camunda.io/docs/next/self-managed/setup/deploy/local/c8run/)
+(`C8Run`), a self-contained distribution that bundles Zeebe, Operate, Tasklist, and
+the REST API — no Docker required.
+
+```powershell
+# from the extracted C8Run directory (requires Java 21+)
+.\start.bat
+```
+
+On Linux/macOS:
+
+```bash
+./start.sh
+```
+
+Once it's up:
+- REST API / Operate API base URL: `http://localhost:8080`
+- Operate UI: `http://localhost:8080/operate`
+- Tasklist UI: `http://localhost:8080/tasklist`
+
+Stop the cluster with `.\shutdown.bat` (or `./shutdown.sh`) when you're done. State is
+persisted between runs unless you delete C8Run's `data` directory.
+
+### 2. Configure environment variables
 
 Create a root `.env` file with the Camunda endpoints for your local cluster:
 
 ```env
-CAMUNDA_ZEEBE_REST_ADDRESS=http://localhost:8080
 CAMUNDA_OPERATE_BASE_URL=http://localhost:8080/v2
-CAMUNDA_TASKLIST_BASE_URL=http://localhost:8080/tasklist
+CHAT_MESSAGE_WORD_LIMIT=500
 ```
 
-### 2. Run the backend
+### 3. Run the backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate       # on Windows
+.venv\Scripts\activate  
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
 Backend runs at http://localhost:8000. Interactive docs at http://localhost:8000/docs.
+Chat messages longer than `CHAT_MESSAGE_WORD_LIMIT` words are reduced with an
+extractive LexRank summary before they are sent to the investigation agent.
 
-### 3. Run the frontend
+### 4. Run the frontend
 
 ```bash
 cd frontend
@@ -87,7 +108,7 @@ npm run dev
 
 Frontend runs at `http://localhost:3000` and calls the backend via `http://localhost:8000`.
 
-### 4. Run everything with Docker Compose
+### 5. Run everything with Docker Compose
 
 ```bash
 docker compose up --build
@@ -95,7 +116,7 @@ docker compose up --build
 
 This starts Postgres (with pgvector), the FastAPI backend, and the Next.js frontend.
 
-### 5. Run backend tests
+### 6. Run backend tests
 
 ```bash
 cd backend
@@ -117,36 +138,21 @@ HTTP 502 instead of substituting local data.
 | GET | `/api/incidents/{key}` | Get a single incident |
 | GET | `/api/process-definitions` | List process definitions |
 | GET | `/api/process-definitions/{key}` | Get a single process definition |
-| POST | `/api/chat` | Send a message to the investigation agent (placeholder reply in Phase 1) |
+| POST | `/api/chat` | Send a message to the investigation agent |
 
-## Frontend dashboard (Phase 1)
+## Frontend dashboard
 
 - **Overview** — active process instances, active incidents, recent failures
 - **Process Instances** — list + detail view
 - **Incidents** — list + detail view
 - **Process Definitions** — list + detail view
 - **AI Investigation** — chat interface talking to `/api/chat`
-- **Documents / Knowledge Base** — placeholder for the Phase 3 RAG ingestion UI
-
-## Roadmap
-
-1. ✅ Basic dashboard + read-only API over mock data
-2. CamundaClient abstraction with mock/real modes, read-only Camunda operations
-3. Document ingestion pipeline (Markdown/TXT/PDF) → pgvector, `search_knowledge`
-4. Historical incident knowledge model, `search_similar_incidents`
-5. LangGraph investigation agent with tool-calling
-6. Structured investigation report (JSON) rendered as a report in the UI
-7. Human-in-the-loop approval for mutating operations + audit log
-8. Multi-user auth/authorization, secrets kept out of the agent
-9. Hybrid retrieval (vector + BM25) with reranking
-10. Evaluation harness (`python -m evaluation.run`) with Recall@K, MRR, faithfulness, etc.
-11. Observability/logging of questions, retrievals, tool calls, latency, tokens
-12. Full operations dashboard UI (BPMN visualization, evidence drill-down, approvals)
+- **Documents / Knowledge Base** — document ingestion and retrieval interface
 
 ## Security notes
 
 - No Camunda or LLM credentials are ever sent to or stored in the frontend.
 - All secrets are read from environment variables and never hardcoded.
-- Later phases add per-user identity, authorization checks on knowledge/operational
+- Per-user identity and authorization checks will apply to knowledge and operational
   resources, and strict separation between auth and the AI agent (the agent never
   receives raw secrets or access tokens).

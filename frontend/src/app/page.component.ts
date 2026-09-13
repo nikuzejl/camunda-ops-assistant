@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ApiService } from './api.service';
-import { Incident, ProcessDefinition, ProcessInstance } from './types';
+import { DocumentSummary, Incident, ProcessDefinition, ProcessInstance } from './types';
 
 @Component({
   standalone: true,
@@ -34,6 +34,12 @@ export class PageComponent implements OnInit {
   aiSummary = '';
   summaryLoading = false;
   summaryLoaded = false;
+  documents: DocumentSummary[] = [];
+  ingesting = false;
+  ingestionMessage = '';
+  searchQuery = '';
+  searchResults: { content: string; source: string; chunk_index: number }[] = [];
+  searching = false;
   readonly operateBaseUrl = 'http://localhost:8080/operate';
 
   ngOnInit(): void {
@@ -52,7 +58,7 @@ export class PageComponent implements OnInit {
       'incident-detail': () => { this.title = `Incident ${this.key}`; this.api.getIncident(this.key).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.incident = v, error: this.fail }); },
       'definition-detail': () => { this.title = `Process Definition ${this.key}`; this.api.getProcessDefinition(this.key).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.definition = v, error: this.fail }); },
       investigation: () => { this.title = 'AI Investigation'; forkJoin({ instances: this.api.listProcessInstances(), incidents: this.api.listIncidents(), definitions: this.api.listProcessDefinitions() }).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (data) => { this.instances = data.instances; this.incidents = data.incidents; this.definitions = data.definitions; }, error: this.fail }); },
-      knowledge: () => { this.title = 'Documents / Knowledge Base'; this.dataLoading = false; },
+      knowledge: () => { this.title = 'Documents / Knowledge Base'; this.api.listDocuments().pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.documents = v, error: this.fail }); },
     };
     requests[this.page]?.();
   }
@@ -62,7 +68,35 @@ export class PageComponent implements OnInit {
   refreshSummary(): void { if (!this.summaryLoading) this.loadAiSummary(); }
   date(value: string | null | undefined): string { return value ? new Date(value).toLocaleString() : '-'; }
   operateProcessUrl(key: string): string { return `${this.operateBaseUrl}/processes/${key}/incidents`; }
-  activeInstances(): ProcessInstance[] { return this.instances.filter((item) => item.state === 'ACTIVE'); }
+  getInstanceState(item?: ProcessInstance): string {
+    if (!item) return '';
+    if (item.has_incident || item.state === 'FAILED' || item.state === 'INCIDENT') return 'FAILED';
+    return item.state;
+  }
+  activeInstances(): ProcessInstance[] { return this.instances.filter((item) => this.getInstanceState(item) === 'ACTIVE'); }
+    onDocumentSelected(event: Event): void {
+      const input = event.target as HTMLInputElement;
+      const file = input.files?.[0];
+      input.value = '';
+      if (!file || this.ingesting) return;
+      this.ingesting = true;
+      this.ingestionMessage = '';
+      this.error = '';
+      this.api.ingestDocument(file).pipe(finalize(() => this.ingesting = false)).subscribe({
+        next: (response) => { this.ingestionMessage = `${response.source} indexed in ${response.chunk_count} chunks.`; this.api.listDocuments().subscribe({ next: (v) => this.documents = v }); },
+        error: (err) => { this.error = err.error?.detail || err.message || 'Document ingestion failed'; },
+      });
+    }
+    searchKnowledge(): void {
+      const query = this.searchQuery.trim();
+      if (query.length < 2 || this.searching) return;
+      this.searching = true;
+      this.error = '';
+      this.api.searchDocuments(query).pipe(finalize(() => this.searching = false)).subscribe({
+        next: (results) => this.searchResults = results,
+        error: (err) => { this.error = err.error?.detail || err.message || 'Document search failed'; },
+      });
+    }
   send(): void {
     const question = this.input.trim();
     if (!question || this.loading) return;

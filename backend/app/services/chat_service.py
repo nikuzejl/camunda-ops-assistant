@@ -1,13 +1,16 @@
 """Gemini-backed investigation and operational summary helpers.
 
-The chat flow remains a lightweight stub until the full investigation agent is
-implemented, while the overview summary uses the configured Gemini model.
+The chat flow delegates to the LangGraph investigation agent, while the
+overview summary uses the configured Gemini model directly.
 """
 import json
+import re
 import uuid
 
 from google import genai
 
+from app.agents import investigation_agent
+from app.camunda.client import CamundaClient
 from app.config.settings import Settings
 from app.models.schemas import (
     AiSummaryResponse,
@@ -19,14 +22,29 @@ from app.models.schemas import (
 )
 
 
-def handle_chat(request: ChatRequest) -> ChatResponse:
+async def handle_chat(settings: Settings, camunda: CamundaClient, request: ChatRequest) -> ChatResponse:
     conversation_id = request.conversation_id or str(uuid.uuid4())
-    reply = (
-        "This is a placeholder response. The AI investigation agent "
-        "(LangGraph, tool use, RAG) will be implemented in a later phase. "
-        f"You asked: \"{request.message}\""
+    message = summarize_message(request.message, settings.chat_message_word_limit)
+    reply = await investigation_agent.run_investigation(
+        settings, camunda, message, conversation_id
     )
     return ChatResponse(conversation_id=conversation_id, reply=reply)
+
+
+def summarize_message(message: str, word_limit: int) -> str:
+    if len(message.split()) <= word_limit:
+        return message
+
+    from sumy.nlp.tokenizers import Tokenizer
+    from sumy.parsers.plaintext import PlaintextParser
+    from sumy.summarizers.lex_rank import LexRankSummarizer
+
+    parser = PlaintextParser.from_string(message, Tokenizer("english"))
+    sentence_limit = max(1, min(len(parser.document.sentences), word_limit // 20))
+    sentences = LexRankSummarizer()(parser.document, sentence_limit)
+    summary = " ".join(str(sentence) for sentence in sentences)
+    words = re.findall(r"\S+", summary)
+    return " ".join(words[:word_limit])
 
 
 def create_operational_summary(

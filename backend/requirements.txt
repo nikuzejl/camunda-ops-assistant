@@ -8,10 +8,14 @@ google-genai
 pillow
 langchain>=0.3.14
 langchain-google-genai
+langchain-mcp-adapters
 langgraph>=0.2.62
 pgvector==0.3.6
 psycopg[binary]==3.2.3
 SQLAlchemy==2.0.36
 langchain-postgres
+langchain-text-splitters
+sumy==0.11.0
+pypdf
 pytest==8.3.4
 pytest-asyncio==0.25.2

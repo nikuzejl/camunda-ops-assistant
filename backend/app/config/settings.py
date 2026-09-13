@@ -27,22 +27,23 @@ class Settings(BaseSettings):
 
     # Camunda
     camunda_mode: Literal["real"] = "real"
-    camunda_zeebe_rest_address: str = "http://localhost:8080"
     camunda_operate_base_url: str = "http://localhost:8081"
-    camunda_tasklist_base_url: str = "http://localhost:8082"
 
     # Database
     database_url: str = "postgresql://raguser:ragpassword@localhost:5432/rag_app"
 
-    # LLM provider - configurable without touching app logic
+    # LLM provider
     llm_model: str = "gemini-3.6-flash"
     llm_api_key: str = ""
-    llm_base_url: str = ""
+    chat_message_word_limit: int = Field(default=500, gt=0)
 
     # Embedding provider
-    embedding_provider: str = "gemini"
-    embedding_model: str = "text-embedding-004"
+    embedding_model: str = "gemini-embedding-2"
     embedding_api_key: str = ""
+    embedding_dimensions: int = 1024
+    vectorstore_table: str = "vectorstore"
+    document_chunk_size: int = 800
+    document_chunk_overlap: int = 120
 
     @property
     def cors_origins(self) -> List[str]:

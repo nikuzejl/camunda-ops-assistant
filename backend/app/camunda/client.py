@@ -114,7 +114,5 @@ class CamundaClient:
             process_definition_id=item["processDefinitionId"],
             name=item["resourceName"],
             version=item["version"],
-            #now()
             deployment_time=time.time(),
-            #deployment_time=item.get("deploymentTime"),
         )

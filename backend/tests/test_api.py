@@ -118,12 +118,38 @@ def test_get_process_definition_found_and_not_found(client: TestClient) -> None:
     assert missing.status_code == 404
 
 
-def test_chat_stub(client: TestClient) -> None:
+def test_chat_stub(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_run_investigation(settings, camunda, message, conversation_id) -> str:
+        return f"Investigated: {message}"
+
+    monkeypatch.setattr(
+        "app.services.chat_service.investigation_agent.run_investigation", fake_run_investigation
+    )
     response = client.post("/api/chat", json={"message": "Why is process 12345 stuck?"})
     assert response.status_code == 200
     body = response.json()
     assert "conversation_id" in body
     assert "12345" in body["reply"]
+
+
+def test_chat_summarizes_messages_over_configured_limit(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured = {}
+
+    async def fake_run_investigation(settings, camunda, message, conversation_id) -> str:
+        captured["message"] = message
+        return "Investigated"
+
+    monkeypatch.setattr(
+        "app.services.chat_service.investigation_agent.run_investigation", fake_run_investigation
+    )
+    message = " ".join(f"Sentence {index} contains operational detail." for index in range(150))
+    response = client.post("/api/chat", json={"message": message})
+
+    assert response.status_code == 200
+    assert len(captured["message"].split()) <= 500
+    assert captured["message"] != message
 
 
 def test_chat_requires_message(client: TestClient) -> None:

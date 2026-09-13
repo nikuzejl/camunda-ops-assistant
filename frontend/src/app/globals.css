@@ -1,11 +1,96 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-  background: #090d16;
-  color: #e5edf8;
+
+  --bg-body: #f5f7fb;
+  --bg-gradient: radial-gradient(circle at 80% 0%, #eef2fb 0, #f5f7fb 38%);
+  --bg-sidebar: rgba(255, 255, 255, .82);
+  --bg-panel: #ffffff;
+  --bg-input: #f8fafc;
+  --border-color: #dbe2ee;
+  --border-color-soft: rgba(219, 226, 238, .6);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-heading: #0f172a;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --link: #2563eb;
+  --nav-text: #475569;
+  --nav-hover-bg: #e6edfb;
+  --nav-hover-text: #0f172a;
+  --danger-bg: rgba(239, 68, 68, .08);
+  --danger-border: rgba(239, 68, 68, .25);
+  --danger-text: #b91c1c;
+  --loading-bg: rgba(59, 130, 246, .08);
+  --loading-border: rgba(59, 130, 246, .2);
+  --loading-text: #1d4ed8;
+  --badge-success-bg: rgba(16, 185, 129, .12);
+  --badge-success-text: #047857;
+  --badge-success-border: rgba(16, 185, 129, .3);
+  --badge-danger-bg: rgba(239, 68, 68, .12);
+  --badge-danger-text: #b91c1c;
+  --badge-danger-border: rgba(239, 68, 68, .3);
+  --row-hover: rgba(37, 99, 235, .05);
+  --chat-message-bg: #eef2f7;
+  --chat-message-text: #1e293b;
+  --chat-user-bg: #2563eb;
+  --chat-user-text: #f8fafc;
+  --chat-user-label: #dbeafe;
+  --chat-form-bg: #ffffff;
+  --success-bg: #e7f8f0;
+  --success-border: #9fe0c4;
+  --success-text: #0f7a53;
+
+  background: var(--bg-body);
+  color: var(--text-primary);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-body: #090d16;
+  --bg-gradient: radial-gradient(circle at 80% 0%, #17243a 0, #090d16 38%);
+  --bg-sidebar: rgba(13, 19, 31, .82);
+  --bg-panel: #0d131f;
+  --bg-input: #090d16;
+  --border-color: #1e2b3f;
+  --border-color-soft: rgba(30, 43, 63, .5);
+  --text-primary: #e5edf8;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-heading: #f8fafc;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --link: #60a5fa;
+  --nav-text: #91a0b6;
+  --nav-hover-bg: #17263c;
+  --nav-hover-text: #f4f8ff;
+  --danger-bg: rgba(239, 68, 68, .12);
+  --danger-border: rgba(239, 68, 68, .3);
+  --danger-text: #fca5a5;
+  --loading-bg: rgba(59, 130, 246, .1);
+  --loading-border: rgba(59, 130, 246, .25);
+  --loading-text: #93c5fd;
+  --badge-success-bg: rgba(16, 185, 129, .15);
+  --badge-success-text: #34d399;
+  --badge-success-border: rgba(16, 185, 129, .3);
+  --badge-danger-bg: rgba(239, 68, 68, .15);
+  --badge-danger-text: #f87171;
+  --badge-danger-border: rgba(239, 68, 68, .3);
+  --row-hover: rgba(23, 38, 60, .4);
+  --chat-message-bg: #17263c;
+  --chat-message-text: #e2e8f0;
+  --chat-user-bg: #1e3a8a;
+  --chat-user-text: #f0f9ff;
+  --chat-user-label: #93c5fd;
+  --chat-form-bg: #0d131f;
+  --success-bg: #142d29;
+  --success-border: #28624f;
+  --success-text: #8ce0bd;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: #090d16; }
+body { margin: 0; min-width: 320px; background: var(--bg-body); color: var(--text-primary); transition: background .2s, color .2s; }
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }

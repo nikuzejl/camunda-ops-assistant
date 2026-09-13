@@ -69,6 +69,29 @@ class AiSummaryResponse(BaseModel):
     summary: str
 
 
+class DocumentSummary(BaseModel):
+    source: str
+    chunk_count: int
+    content_type: str
+
+
+class IngestionResponse(BaseModel):
+    source: str
+    chunk_count: int
+    characters: int
+
+
+class DocumentSearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=500)
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+class DocumentSearchResult(BaseModel):
+    content: str
+    source: str
+    chunk_index: int
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     environment: str

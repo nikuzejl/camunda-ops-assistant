@@ -1,8 +1,17 @@
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
-      <h1>Camunda AI Ops</h1>
-      <p>Operations Assistant</p>
+      <div>
+        <h1>Camunda AI Ops</h1>
+        <p>Operations Assistant</p>
+      </div>
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="toggleTheme()"
+        [attr.aria-label]="isDarkTheme() ? 'Switch to light theme' : 'Switch to dark theme'"
+        title="Toggle light/dark theme"
+      >{{ isDarkTheme() ? '☀️' : '🌙' }}</button>
     </div>
     <nav>
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Overview</a>
