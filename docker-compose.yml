@@ -26,7 +26,7 @@ services:
     container_name: rag-app-backend
     restart: unless-stopped
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://raguser:ragpassword@postgres:5432/rag_app
     ports:

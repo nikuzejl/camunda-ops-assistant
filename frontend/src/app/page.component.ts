@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ApiService } from './api.service';
-import { DocumentSummary, Incident, ProcessDefinition, ProcessInstance } from './types';
+import { DocumentSummary, Incident, ProcessInstance } from './types';
 
 @Component({
   standalone: true,
@@ -16,15 +16,14 @@ import { DocumentSummary, Incident, ProcessDefinition, ProcessInstance } from '.
 export class PageComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
+  @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLDivElement>;
   page = '';
   key = '';
   title = '';
   instances: ProcessInstance[] = [];
   incidents: Incident[] = [];
-  definitions: ProcessDefinition[] = [];
   instance?: ProcessInstance;
   incident?: Incident;
-  definition?: ProcessDefinition;
   error = '';
   messages: { role: 'user' | 'assistant'; content: string }[] = [];
   input = '';
@@ -50,14 +49,10 @@ export class PageComponent implements OnInit {
     this.error = '';
     this.dataLoading = true;
     const requests: Record<string, () => void> = {
-      overview: () => { this.title = 'Overview'; forkJoin({ instances: this.api.listProcessInstances(), incidents: this.api.listIncidents(), definitions: this.api.listProcessDefinitions() }).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (data) => { this.instances = data.instances; this.incidents = data.incidents; this.definitions = data.definitions; }, error: this.fail }); if (!this.summaryLoaded && !this.summaryLoading) this.loadAiSummary(); },
-      instances: () => { this.title = 'Process Instances'; this.api.listProcessInstances().pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.instances = v, error: this.fail }); },
-      incidents: () => { this.title = 'Incidents'; this.api.listIncidents().pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.incidents = v, error: this.fail }); },
-      definitions: () => { this.title = 'Process Definitions'; this.api.listProcessDefinitions().pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.definitions = v, error: this.fail }); },
+      overview: () => { this.title = 'Overview'; forkJoin({ instances: this.api.listProcessInstances(), incidents: this.api.listIncidents() }).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (data) => { this.instances = data.instances; this.incidents = data.incidents; }, error: this.fail }); },
       'instance-detail': () => { this.title = `Process Instance ${this.key}`; this.api.getProcessInstance(this.key).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.instance = v, error: this.fail }); },
       'incident-detail': () => { this.title = `Incident ${this.key}`; this.api.getIncident(this.key).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.incident = v, error: this.fail }); },
-      'definition-detail': () => { this.title = `Process Definition ${this.key}`; this.api.getProcessDefinition(this.key).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.definition = v, error: this.fail }); },
-      investigation: () => { this.title = 'AI Investigation'; forkJoin({ instances: this.api.listProcessInstances(), incidents: this.api.listIncidents(), definitions: this.api.listProcessDefinitions() }).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (data) => { this.instances = data.instances; this.incidents = data.incidents; this.definitions = data.definitions; }, error: this.fail }); },
+      investigation: () => { this.title = 'AI Investigation'; forkJoin({ instances: this.api.listProcessInstances(), incidents: this.api.listIncidents() }).pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (data) => { this.instances = data.instances; this.incidents = data.incidents; }, error: this.fail }); },
       knowledge: () => { this.title = 'Documents / Knowledge Base'; this.api.listDocuments().pipe(finalize(() => this.dataLoading = false)).subscribe({ next: (v) => this.documents = v, error: this.fail }); },
     };
     requests[this.page]?.();
@@ -74,6 +69,9 @@ export class PageComponent implements OnInit {
     return item.state;
   }
   activeInstances(): ProcessInstance[] { return this.instances.filter((item) => this.getInstanceState(item) === 'ACTIVE'); }
+  activeIncidents(): Incident[] { return this.incidents.filter((item) => item.state === 'ACTIVE'); }
+  resolvedIncidents(): Incident[] { return this.incidents.filter((item) => item.state === 'RESOLVED'); }
+  incidentStateLabel(state: string): string { return state === 'ACTIVE' ? 'UNRESOLVED' : state; }
     onDocumentSelected(event: Event): void {
       const input = event.target as HTMLInputElement;
       const file = input.files?.[0];
@@ -100,7 +98,14 @@ export class PageComponent implements OnInit {
   send(): void {
     const question = this.input.trim();
     if (!question || this.loading) return;
-    this.messages.push({ role: 'user', content: question }); this.input = ''; this.loading = true; this.error = '';
-    this.api.chat(question, this.conversationId).subscribe({ next: (response) => { this.conversationId = response.conversation_id; this.messages.push({ role: 'assistant', content: response.reply }); this.loading = false; }, error: (err) => { this.error = err.message; this.loading = false; } });
+    this.messages.push({ role: 'user', content: question }); this.input = ''; this.loading = true; this.error = ''; this.scrollMessagesToBottom();
+    this.api.chat(question, this.conversationId).subscribe({ next: (response) => { this.conversationId = response.conversation_id; this.messages.push({ role: 'assistant', content: response.reply }); this.loading = false; this.scrollMessagesToBottom(); }, error: (err) => { this.error = err.message; this.loading = false; } });
+  }
+
+  private scrollMessagesToBottom(): void {
+    setTimeout(() => {
+      const element = this.messagesContainer?.nativeElement;
+      if (element) element.scrollTop = element.scrollHeight;
+    });
   }
 }

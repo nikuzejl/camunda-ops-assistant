@@ -85,6 +85,10 @@ header h2 {
   color: #ef4444;
 }
 
+.stats article strong.success-text {
+  color: #22c55e;
+}
+
 /* Panels */
 .panel {
   background: var(--bg-panel);
@@ -265,10 +269,92 @@ input:focus {
   white-space: pre-wrap;
 }
 
+.ai-summary-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-input);
+  text-align: center;
+}
+
+.ai-summary-placeholder .ai-summary-icon {
+  font-size: 24px;
+}
+
+.ai-summary-placeholder p {
+  margin: 0;
+}
+
+.ai-summary-placeholder .button {
+  margin-top: 4px;
+}
+
+.link-button {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.ai-summary-refresh {
+  margin-top: 4px;
+}
+
+.ai-summary-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-summary-state p {
+  margin: 0;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Chat Component */
 .panel.chat {
   padding: 0;
   overflow: hidden;
+}
+
+.chat-heading {
+  padding: 16px 24px;
+  background: var(--accent);
+}
+
+.chat-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .chat .messages {

@@ -10,7 +10,7 @@ from typing import List, Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+ROOT_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -23,23 +23,25 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     # CORS
-    backend_cors_origins: str = "http://localhost:4200"
+    backend_cors_origins: str = "http://localhost:4200,http://127.0.0.1:4200"
 
     # Camunda
     camunda_mode: Literal["real"] = "real"
-    camunda_operate_base_url: str = "http://localhost:8081"
+    camunda_operate_base_url: str = "http://localhost:8080/v2"
+    camunda_mcp_server_url: str = ""
+    camunda_mcp_transport: Literal["streamable_http", "sse"] = "streamable_http"
 
     # Database
     database_url: str = "postgresql://raguser:ragpassword@localhost:5432/rag_app"
 
     # LLM provider
     llm_model: str = "gemini-3.6-flash"
-    llm_api_key: str = ""
+    llm_api_key: str | None = None
     chat_message_word_limit: int = Field(default=500, gt=0)
 
     # Embedding provider
     embedding_model: str = "gemini-embedding-2"
-    embedding_api_key: str = ""
+    embedding_api_key: str | None = None
     embedding_dimensions: int = 1024
     vectorstore_table: str = "vectorstore"
     document_chunk_size: int = 800

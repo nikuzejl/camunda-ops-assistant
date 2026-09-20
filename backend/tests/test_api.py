@@ -132,6 +132,49 @@ def test_chat_stub(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     assert "12345" in body["reply"]
 
 
+def test_chat_returns_fallback_when_investigation_fails(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def failing_run_investigation(settings, camunda, message, conversation_id) -> str:
+        raise ConnectionError("LLM service unavailable")
+
+    monkeypatch.setattr(
+        "app.services.chat_service.investigation_agent.run_investigation", failing_run_investigation
+    )
+    response = client.post("/api/chat", json={"message": "Why is process 12345 stuck?"})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == chat_service.CHAT_FALLBACK_REPLY
+
+
+def test_chat_returns_fallback_for_empty_investigation_reply(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def empty_run_investigation(settings, camunda, message, conversation_id) -> str:
+        return "   "
+
+    monkeypatch.setattr(
+        "app.services.chat_service.investigation_agent.run_investigation", empty_run_investigation
+    )
+    response = client.post("/api/chat", json={"message": "Why is process 12345 stuck?"})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == chat_service.CHAT_FALLBACK_REPLY
+
+
+def test_chat_returns_fallback_when_route_setup_fails(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def failing_get_settings():
+        raise RuntimeError("Settings unavailable")
+
+    monkeypatch.setattr(routes, "get_settings", failing_get_settings)
+    response = client.post("/api/chat", json={"message": "Why is process 12345 stuck?"})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == chat_service.CHAT_FALLBACK_REPLY
+
+
 def test_chat_summarizes_messages_over_configured_limit(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

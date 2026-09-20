@@ -5,7 +5,7 @@
       "name": "Debug FastAPI",
       "type": "debugpy",
       "request": "launch",
-      "python": "${workspaceFolder}/backend/.venv/bin/python",
+      "python": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
       "module": "uvicorn",
       "cwd": "${workspaceFolder}/backend",
       "args": [
@@ -15,6 +15,9 @@
         "--port",
         "8000"
       ],
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
       "justMyCode": true,
       "console": "integratedTerminal"
     }

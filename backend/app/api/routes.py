@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.camunda.client import CamundaClient
@@ -88,8 +90,11 @@ def get_ai_summary() -> AiSummaryResponse:
 async def post_chat(request: ChatRequest) -> ChatResponse:
     try:
         return await chat_service.handle_chat(get_settings(), get_camunda_client(), request)
-    except RuntimeError as error:
-        raise HTTPException(status_code=502, detail=str(error)) from error
+    except Exception:
+        return ChatResponse(
+            conversation_id=request.conversation_id or str(uuid.uuid4()),
+            reply=chat_service.CHAT_FALLBACK_REPLY,
+        )
 
 
 @router.get("/documents", response_model=list[DocumentSummary])

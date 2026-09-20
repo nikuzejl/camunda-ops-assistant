@@ -6,6 +6,7 @@ overview summary uses the configured Gemini model directly.
 import json
 import re
 import uuid
+import traceback
 
 from google import genai
 
@@ -21,13 +22,27 @@ from app.models.schemas import (
     ProcessInstance,
 )
 
+CHAT_FALLBACK_REPLY = (
+    "I couldn't complete the investigation right now."
+    "Please try again shortly."
+)
+
 
 async def handle_chat(settings: Settings, camunda: CamundaClient, request: ChatRequest) -> ChatResponse:
     conversation_id = request.conversation_id or str(uuid.uuid4())
-    message = summarize_message(request.message, settings.chat_message_word_limit)
-    reply = await investigation_agent.run_investigation(
-        settings, camunda, message, conversation_id
-    )
+    try:
+        message = summarize_message(request.message, settings.chat_message_word_limit)
+        reply = await investigation_agent.run_investigation(
+            settings, camunda, message, conversation_id
+        )
+
+    except Exception:
+        traceback.print_exc()
+        reply = CHAT_FALLBACK_REPLY
+
+    if not reply or not reply.strip():
+        reply = CHAT_FALLBACK_REPLY
+
     return ChatResponse(conversation_id=conversation_id, reply=reply)
 
 

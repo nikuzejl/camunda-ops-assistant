@@ -57,14 +57,15 @@ backend. The easiest option for local development is
 the REST API — no Docker required.
 
 ```powershell
-# from the extracted C8Run directory (requires Java 21+)
-.\start.bat
+.\c8run.exe start
+.\c8run.exe stop
 ```
 
 On Linux/macOS:
 
 ```bash
 ./start.sh
+./shutdown.sh
 ```
 
 Once it's up:
@@ -77,21 +78,25 @@ persisted between runs unless you delete C8Run's `data` directory.
 
 ### 2. Configure environment variables
 
-Create a root `.env` file with the Camunda endpoints for your local cluster:
+Copy the credential template and add your API key values:
 
-```env
-CAMUNDA_OPERATE_BASE_URL=http://localhost:8080/v2
-CHAT_MESSAGE_WORD_LIMIT=500
+```bash
+cp backend/.env.example backend/.env
 ```
+
+`backend/.env` is ignored by Git and contains secrets only. Operational defaults,
+including the Camunda endpoint, CORS origins, and model names, live in
+`backend/app/config/settings.py`. `EMBEDDING_API_KEY` is optional; the LLM key is
+used for embeddings when it is not set.
 
 ### 3. Run the backend
 
 ```bash
 cd backend
-python -m venv .venv
-.venv\Scripts\activate  
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000  
+docker compose up -d postgres
 ```
 
 Backend runs at http://localhost:8000. Interactive docs at http://localhost:8000/docs.

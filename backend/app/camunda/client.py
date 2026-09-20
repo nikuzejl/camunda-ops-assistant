@@ -1,4 +1,4 @@
-"""Read-only client for the Camunda 8 REST API."""
+"""Client for the Camunda 8 REST API."""
 from typing import Any
 
 import httpx
@@ -42,12 +42,54 @@ class CamundaClient:
         item = self._get(f"incidents/{key}")
         return self._to_incident(item) if item else None
 
+    def get_failed_job_keys(self, process_instance_key: str) -> list[str]:
+        payload = {
+            "filter": {"state": "ACTIVE"},
+            "page": {"limit": 100},
+        }
+        response = self._request(
+            "POST",
+            f"/process-instances/{process_instance_key}/incidents/search",
+            json=payload,
+        )
+        return [
+            str(item["jobKey"])
+            for item in response.json().get("items", [])
+            if item.get("jobKey") is not None
+        ]
+
+    def retry_job(self, job_key: str, retries: int = 3) -> None:
+        self._request(
+            "PATCH",
+            f"/jobs/{job_key}",
+            json={"retries": retries},
+        )
+
     def list_process_definitions(self) -> list[ProcessDefinition]:
         return [self._to_process_definition(item) for item in self._search("process-definitions")]
 
     def get_process_definition(self, key: str) -> ProcessDefinition | None:
         item = self._get(f"process-definitions/{key}")
         return self._to_process_definition(item) if item else None
+
+    def set_element_instance_variables(
+        self,
+        element_instance_key: str,
+        variables: dict[str, Any],
+        local: bool = False,
+    ) -> None:
+        self._request(
+            "PUT",
+            f"/element-instances/{element_instance_key}/variables",
+            json={"variables": variables, "local": local},
+        )
+
+    def cancel_process_instance(self, process_instance_key: str, operation_reference: int = 0) -> None:
+        self._request(
+            "POST",
+            f"/process-instances/{process_instance_key}/cancellation",
+            json={"operationReference": operation_reference},
+        )
 
     def _search(self, resource: str, *, json: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         response = self._request("POST", f"/{resource}/search", json=json or {})
