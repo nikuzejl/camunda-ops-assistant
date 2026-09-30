@@ -6,6 +6,7 @@ import mimetypes
 import uuid
 from datetime import datetime, timezone
 from pathlib import PurePath
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import UploadFile
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -28,12 +29,20 @@ class DocumentIngestionError(ValueError):
 
 def _async_database_url(database_url: str) -> str:
     if database_url.startswith("postgresql+asyncpg://"):
-        return database_url
-    if database_url.startswith("postgresql://"):
-        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    if database_url.startswith("postgres://"):
-        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    raise DocumentIngestionError("DATABASE_URL must use a PostgreSQL connection URL")
+        async_url = database_url
+    elif database_url.startswith("postgresql://"):
+        async_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgres://"):
+        async_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    else:
+        raise DocumentIngestionError("DATABASE_URL must use a PostgreSQL connection URL")
+
+    parsed = urlsplit(async_url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if "sslmode" in query and "ssl" not in query:
+        query["ssl"] = query.pop("sslmode")
+    query.pop("channel_binding", None)
+    return urlunsplit(parsed._replace(query=urlencode(query)))
 
 
 async def _extract_text(file: UploadFile, content: bytes) -> tuple[str, str]:
@@ -151,6 +160,29 @@ async def list_documents(settings: Settings) -> list[DocumentSummary]:
                 )
             )
             return [DocumentSummary(**dict(row)) for row in result.mappings()]
+    finally:
+        await engine.dispose()
+
+
+async def delete_document(settings: Settings, source: str) -> int:
+    engine = create_async_engine(_async_database_url(settings.database_url))
+    try:
+        async with engine.begin() as connection:
+            table_name = settings.vectorstore_table.replace('"', '""')
+            table_result = await connection.execute(
+                text("SELECT to_regclass(:qualified_table)"),
+                {"qualified_table": f"public.{settings.vectorstore_table}"},
+            )
+            if table_result.scalar_one() is None:
+                return 0
+            result = await connection.execute(
+                text(
+                    "DELETE FROM public.\"" + table_name + "\" "
+                    "WHERE langchain_metadata->>'source' = :source"
+                ),
+                {"source": source},
+            )
+            return result.rowcount or 0
     finally:
         await engine.dispose()
 

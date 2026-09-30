@@ -12,7 +12,7 @@ from langchain.agents import create_agent
 
 from app.camunda.client import CamundaClient
 from app.config.settings import Settings
-from app.services import document_service
+from app.services import document_service, resolution_service
 
 import logging
 
@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
     "You are an AI investigation agent for a Camunda process orchestration platform. "
     "Use the available tools to look up process instances, incidents, and search the "
-    "indexed knowledge base before answering questions. Be concise, reference the "
+    "indexed knowledge base and confirmed resolution lessons before answering questions. "
+    "For incident diagnosis, search for similar confirmed resolutions first; treat past lessons as precedent, not proof that the current incident has the same cause. Be concise, reference the "
     "process instance or incident keys you relied on, and end with one concrete "
     "recommended next action when relevant. Reply in plain, natural conversational "
     "prose only \u2014 no markdown formatting such as headings, bullet lists, or bold text."
@@ -52,7 +53,20 @@ def _build_rag_tools(settings: Settings) -> list[Any]:
             return "No matching knowledge base documents."
         return "\n\n".join(f"[{result.source} chunk {result.chunk_index}] {result.content}" for result in results)
 
-    return [search_knowledge_base]
+    @tool
+    def search_resolution_lessons(query: str) -> str:
+        """Search operator-confirmed resolutions of previously resolved incidents."""
+        results = resolution_service.search_resolution_lessons(settings, query, limit=3)
+        if not results:
+            return "No matching confirmed resolution lessons."
+        return "\n\n".join(
+            f"[Incident {item.incident_key}; {item.process_definition_id}; {item.error_type}] "
+            f"Diagnosis: {item.diagnosis}\nActions taken: {item.actions_taken}\n"
+            f"Confirmed resolution: {item.resolution}"
+            for item in results
+        )
+
+    return [search_knowledge_base, search_resolution_lessons]
 
 
 def _build_camunda_operation_tools(camunda: CamundaClient) -> list[Any]:

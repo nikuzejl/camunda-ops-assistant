@@ -22,7 +22,6 @@ backend/
     services/            Business logic (chat, etc.)
     config/              Environment-driven settings (pydantic-settings)
   tests/                 Pytest suite
-docker-compose.yml        Postgres (pgvector) + backend + frontend for local dev
 ```
 
 Design principles:
@@ -39,22 +38,19 @@ Design principles:
 - **Backend:** Python, FastAPI, Pydantic, LangChain, LangGraph
 - **Database:** PostgreSQL + pgvector
 - **Workflow platform:** Camunda 8 (local dev environment)
-- **Infra:** Docker Compose
 
 ## Getting started (local development)
 
 ### Prerequisites
 - Node.js 20+
 - Python 3.12+
-- Docker (optional, for the full Compose stack)
 
 ### 1. Start a local Camunda 8 cluster (C8Run)
 
 This project talks to a real Camunda 8 cluster, so start one before running the
 backend. The easiest option for local development is
 [Camunda 8 Run](https://docs.camunda.io/docs/next/self-managed/setup/deploy/local/c8run/)
-(`C8Run`), a self-contained distribution that bundles Zeebe, Operate, Tasklist, and
-the REST API — no Docker required.
+(`C8Run`), a self-contained distribution that bundles Zeebe, Operate, Tasklist
 
 ```powershell
 .\c8run.exe start
@@ -84,10 +80,10 @@ Copy the credential template and add your API key values:
 cp backend/.env.example backend/.env
 ```
 
-`backend/.env` is ignored by Git and contains secrets only. Operational defaults,
-including the Camunda endpoint, CORS origins, and model names, live in
-`backend/app/config/settings.py`. `EMBEDDING_API_KEY` is optional; the LLM key is
-used for embeddings when it is not set.
+`backend/.env` is ignored by Git and contains credentials and deployment settings,
+including `DATABASE_URL`, `CAMUNDA_OPERATE_BASE_URL`, and `CAMUNDA_MCP_SERVER_URL`.
+Use `backend/.env.example` as a starting point. `EMBEDDING_API_KEY` is optional;
+the LLM key is used for embeddings when it is not set.
 
 ### 3. Run the backend
 
@@ -95,11 +91,10 @@ used for embeddings when it is not set.
 cd backend
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000  
-docker compose up -d postgres
+python -m uvicorn app.main:app --reload --port 9990  
 ```
 
-Backend runs at http://localhost:8000. Interactive docs at http://localhost:8000/docs.
+Backend runs at http://localhost:9990. Interactive docs at http://localhost:9990/docs.
 Chat messages longer than `CHAT_MESSAGE_WORD_LIMIT` words are reduced with an
 extractive LexRank summary before they are sent to the investigation agent.
 
@@ -111,13 +106,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000` and calls the backend via `http://localhost:8000`.
-
-### 5. Run everything with Docker Compose
-
-```bash
-docker compose up --build
-```
+Frontend runs at `http://localhost:3000` and calls the backend via `http://localhost:9990`.
 
 This starts Postgres (with pgvector), the FastAPI backend, and the Next.js frontend.
 
@@ -141,9 +130,15 @@ HTTP 502 instead of substituting local data.
 | GET | `/api/process-instances/{key}` | Get a single process instance |
 | GET | `/api/incidents` | List incidents |
 | GET | `/api/incidents/{key}` | Get a single incident |
+| GET | `/api/incidents/{key}/resolution` | Get a saved resolution lesson, if present |
+| PUT | `/api/incidents/{key}/resolution` | Save or update an operator-confirmed lesson for a resolved incident |
 | GET | `/api/process-definitions` | List process definitions |
 | GET | `/api/process-definitions/{key}` | Get a single process definition |
 | POST | `/api/chat` | Send a message to the investigation agent |
+| GET | `/api/documents` | List indexed document sources |
+| POST | `/api/documents/ingest` | Upload and index a document |
+| DELETE | `/api/documents?source={source}` | Delete all indexed chunks for a source |
+| POST | `/api/documents/search` | Search indexed document chunks |
 
 ## Frontend dashboard
 
@@ -153,6 +148,7 @@ HTTP 502 instead of substituting local data.
 - **Process Definitions** — list + detail view
 - **AI Investigation** — chat interface talking to `/api/chat`
 - **Documents / Knowledge Base** — document ingestion and retrieval interface
+- **Resolution lessons** — reviewed incident diagnoses, actions, and outcomes are stored in PostgreSQL and searched by the Ops Agent
 
 ## Security notes
 

@@ -47,6 +47,22 @@ class Incident(BaseModel):
     resolved_time: Optional[datetime] = None
 
 
+class ResolutionLessonRequest(BaseModel):
+    diagnosis: str = Field(..., min_length=1, max_length=5000)
+    actions_taken: str = Field(..., min_length=1, max_length=5000)
+    resolution: str = Field(..., min_length=1, max_length=5000)
+
+
+class ResolutionLesson(ResolutionLessonRequest):
+    incident_key: str
+    process_instance_key: str
+    process_definition_id: str
+    error_type: str
+    flow_node_id: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class ProcessDefinition(BaseModel):
     key: str
     process_definition_id: str
@@ -75,6 +91,11 @@ class DocumentSummary(BaseModel):
     content_type: str
 
 
+class DocumentDeleteResponse(BaseModel):
+    source: str
+    deleted_chunks: int
+
+
 class IngestionResponse(BaseModel):
     source: str
     chunk_count: int
@@ -95,4 +116,3 @@ class DocumentSearchResult(BaseModel):
 class HealthResponse(BaseModel):
     status: str = "ok"
     environment: str
-    camunda_mode: str

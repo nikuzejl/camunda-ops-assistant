@@ -51,6 +51,103 @@ header h2 {
   margin: 0;
 }
 
+/* Document deletion dialog */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 58%);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-dialog {
+  width: min(100%, 460px);
+  padding: 28px;
+  background: var(--bg-panel);
+  border: 1px solid var(--danger-border);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 25%);
+  animation: dialog-enter 160ms ease-out;
+}
+
+.confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.confirm-copy h2 {
+  margin: 0 0 10px;
+  color: var(--text-heading);
+  font-size: 21px;
+  font-weight: 650;
+}
+
+.confirm-copy > p:last-child {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.confirm-copy strong {
+  color: var(--text-heading);
+  font-weight: 650;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.confirm-actions button {
+  padding: 10px 15px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dialog-cancel {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.dialog-cancel:hover {
+  background: var(--row-hover);
+  color: var(--text-heading);
+}
+
+.dialog-delete {
+  background: var(--danger-text);
+  border: 1px solid var(--danger-text);
+  color: #ffffff;
+}
+
+.dialog-delete:hover {
+  filter: brightness(0.9);
+}
+
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Stats Cards */
 .stats {
   display: grid;
@@ -219,6 +316,49 @@ td a.button {
   letter-spacing: 0.5px;
 }
 
+.resolution-form {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.resolution-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resolution-form textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.resolution-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.resolution-message {
+  margin: 0;
+  color: var(--success-text);
+  font-size: 13px;
+}
+
+.resolution-message.resolution-error {
+  color: var(--danger-text);
+}
+
 /* Buttons & Inputs */
 .button, button.button, label.button {
   display: inline-flex;
@@ -267,6 +407,18 @@ input:focus {
   line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-wrap;
+}
+
+.ai-summary-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ai-summary-error p {
+  margin: 0;
+  color: var(--danger-text) !important;
 }
 
 .ai-summary-placeholder {
@@ -463,6 +615,32 @@ input:focus {
   background: var(--success-bg);
   color: var(--success-text);
   font-size: 13px;
+}
+
+.document-action-error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.delete-document {
+  padding: 6px 10px;
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-document:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.delete-document:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .knowledge-search {

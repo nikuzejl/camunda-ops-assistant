@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.api import routes
 from app.main import app
+from app.models.schemas import Incident, IncidentState, ResolutionLesson, ResolutionLessonRequest
 
 
 @pytest.fixture
@@ -62,7 +63,6 @@ def test_health(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["camunda_mode"] == "real"
 
 
 def test_list_process_instances(client: TestClient) -> None:
@@ -102,10 +102,114 @@ def test_get_incident_found_and_not_found(client: TestClient) -> None:
     assert missing.status_code == 404
 
 
+def test_delete_indexed_document_by_source(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_delete_document(settings, source: str) -> int:
+        assert source == "ops/runbook.md"
+        return 4
+
+    monkeypatch.setattr(routes.document_service, "delete_document", fake_delete_document)
+    response = client.delete("/api/documents", params={"source": "ops/runbook.md"})
+
+    assert response.status_code == 200
+    assert response.json() == {"source": "ops/runbook.md", "deleted_chunks": 4}
+
+
+def test_save_resolution_lesson_rejects_active_incident(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident = Incident(
+        key="incident-1",
+        process_instance_key="instance-1",
+        process_definition_id="payment-processing",
+        error_type="JOB_NO_RETRIES",
+        error_message="Gateway timeout",
+        flow_node_id="Task_ChargeCard",
+        state=IncidentState.ACTIVE,
+        creation_time="2026-08-31T10:05:00Z",
+    )
+
+    class CamundaStub:
+        def get_incident(self, key: str) -> Incident:
+            return incident
+
+    monkeypatch.setattr(routes, "get_camunda_client", CamundaStub)
+    response = TestClient(app).put(
+        "/api/incidents/incident-1/resolution",
+        json={"diagnosis": "Timeout", "actions_taken": "Checked gateway", "resolution": "Recovered"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_save_resolution_lesson_returns_confirmed_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    incident = Incident(
+        key="incident-1",
+        process_instance_key="instance-1",
+        process_definition_id="payment-processing",
+        error_type="JOB_NO_RETRIES",
+        error_message="Gateway timeout",
+        flow_node_id="Task_ChargeCard",
+        state=IncidentState.RESOLVED,
+        creation_time="2026-08-31T10:05:00Z",
+        resolved_time="2026-08-31T10:15:00Z",
+    )
+
+    class CamundaStub:
+        def get_incident(self, key: str) -> Incident:
+            return incident
+
+    lesson = ResolutionLesson(
+        incident_key=incident.key,
+        process_instance_key=incident.process_instance_key,
+        process_definition_id=incident.process_definition_id,
+        error_type=incident.error_type,
+        flow_node_id=incident.flow_node_id,
+        diagnosis="Gateway was unavailable",
+        actions_taken="Restored gateway connectivity",
+        resolution="Retried the job successfully",
+        created_at="2026-08-31T10:15:00Z",
+        updated_at="2026-08-31T10:15:00Z",
+    )
+    saved: dict[str, object] = {}
+
+    def save(settings, received_incident, request: ResolutionLessonRequest) -> ResolutionLesson:
+        saved["incident"] = received_incident
+        saved["request"] = request
+        return lesson
+
+    monkeypatch.setattr(routes, "get_camunda_client", CamundaStub)
+    monkeypatch.setattr(routes.resolution_service, "save_resolution_lesson", save)
+    response = TestClient(app).put(
+        "/api/incidents/incident-1/resolution",
+        json={
+            "diagnosis": "Gateway was unavailable",
+            "actions_taken": "Restored gateway connectivity",
+            "resolution": "Retried the job successfully",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["incident_key"] == "incident-1"
+    assert saved["incident"].state == IncidentState.RESOLVED
+
+
 def test_list_process_definitions(client: TestClient) -> None:
     response = client.get("/api/process-definitions")
     assert response.status_code == 200
     assert len(response.json()) >= 1
+
+
+def test_ai_summary_returns_user_safe_error_for_provider_failure(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def failing_summary(*args, **kwargs):
+        raise ConnectionError("503 UNAVAILABLE")
+
+    monkeypatch.setattr(routes.chat_service, "create_operational_summary", failing_summary)
+    response = client.get("/api/ai-summary")
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "Something went wrong while generating the AI summary. Please try again later."
+    }
 
 
 def test_get_process_definition_found_and_not_found(client: TestClient) -> None:

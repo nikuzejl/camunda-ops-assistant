@@ -2,7 +2,8 @@
   "servers": {
     "camunda-mcp": {
       "type": "http",
-      "url": "http://localhost:8080/mcp/cluster"
+      "url": "http://129.213.191.117:8080/mcp/cluster"
+      //"url": "http://localhost:8080/mcp/cluster"
     }
   }
 }
