@@ -6,7 +6,7 @@ import { AiSummaryResponse, ChatResponse, DocumentDeleteResponse, DocumentSearch
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://129.213.191.117:9990';
+  private readonly baseUrl = 'https://camunda-ops.lewisnikuze.com';
   listProcessInstances(): Observable<ProcessInstance[]> { return this.http.get<ProcessInstance[]>(`${this.baseUrl}/api/process-instances`); }
   getProcessInstance(key: string): Observable<ProcessInstance> { return this.http.get<ProcessInstance>(`${this.baseUrl}/api/process-instances/${key}`); }
   listIncidents(): Observable<Incident[]> { return this.http.get<Incident[]>(`${this.baseUrl}/api/incidents`); }
